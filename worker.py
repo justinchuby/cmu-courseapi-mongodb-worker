@@ -1,9 +1,22 @@
 import course_api
 
-def generate_from_course_api(semester):
+
+def get_scotty_data(semester):
     assert(semester in ["F", "S", "M1", "M2"])
     global scotty_data
-    scotty_data = cmu_course_api.get_course_data(semester)
+    scotty_data = course_api.get_course_data(semester)
+    return scotty_data
+
+
+def create_course_documents(scotty_data):
+    # TODO: isolate course and events
+    pass
+
+
+def create_event_documents(scotty_data):
+    pass
+
 
 def main():
-    pass
+    # TODO: fix this later
+    semester = "S"

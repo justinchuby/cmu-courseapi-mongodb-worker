@@ -1,3 +1,5 @@
+# Adapted from ScottyLabs Course API. https://github.com/ScottyLabs/course-api
+
 from datetime import date
 from parse_descs import get_course_desc
 from parse_schedules import parse_schedules
