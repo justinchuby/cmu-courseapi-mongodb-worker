@@ -36,7 +36,7 @@ instructor and not by a TA, I call these lettered groups 'lectures'. Courses
 meant for only certain majors, like advanced physics courses, have only one
 lettered lecture and comprise much of this category of courses.
 '''
-
+import re
 import urllib.request
 import bs4
 import sys
@@ -270,12 +270,14 @@ def parse_row(row):
             return ('department', row[0])
         # case course (determined by having a numeric course)
         elif row[0] and row[0].isdigit():
-            data = {}
-            data['num'] = row[0]
-            data['title'] = row[1]
-            data['units'] = row[2]
-            data['lectures'] = [parse_lec_sec(row)]
-            data['sections'] = []
+            lecture = parse_lec_sec(row)
+            lecture['type'] = 'lecture'
+            data = {
+                'num': row[0],
+                'title': row[1],
+                'units': row[2],
+                'meetings': [lecture],
+            }
             return ('course', data)
         # case lecture or section
         elif row[3]:
@@ -317,13 +319,11 @@ def extract_data_from_row(tr, data, curr_state):
 
         # the course determines whether lectures are denoted with 'lec' or
         # letters
-        if not is_lecture(row_data['lectures'][0]['name'], True):
+        if not is_lecture(row_data['meetings'][0]['name'], True):
             curr_state['is_letter_lecture'] = True
         else:
             curr_state['is_letter_lecture'] = False
-            curr_state['curr_lecture'] = row_data['lectures'][0]
-        curr_state['curr_lec_sec'] = row_data['lectures'][0]
-        curr_state['curr_course']['sections'] = []
+        curr_state['curr_lec_sec'] = row_data['meetings'][0]
 
         data.append(curr_state['curr_course'])
 
@@ -332,21 +332,24 @@ def extract_data_from_row(tr, data, curr_state):
 
         # if course is a letter-lecture, then this is for sure another lecture
         if curr_state['is_letter_lecture']:
-            # add in lecture
-            curr_state['curr_course']['lectures'].append(row_data)
+            # add as a lecture
+            row_data['type'] = 'lecture'
+            curr_state['curr_course']['meetings'].append(row_data)
 
         # not-letter-lecture
         else:
             # determine if lecture or section
             if is_lecture(row_data['name'], False):
-                curr_state['curr_lecture'] = row_data
                 # add in lecture
-                curr_state['curr_course']['lectures'].append(row_data)
+                row_data['type'] = 'lecture'
+                curr_state['curr_course']['meetings'].append(row_data)
             else:
                 # add in section
-                curr_state['curr_course']['sections'].append(row_data)
+                row_data['type'] = 'section'
+                curr_state['curr_course']['meetings'].append(row_data)
 
     elif kind == 'meeting':
+        # This meeting kind is different from the above meetings (lecsec)
         curr_state['curr_lec_sec']['times'].append(row_data)
 
     else:
@@ -368,9 +371,6 @@ def parse_schedules(quarter):
         sys.exit()
     print('Done.')
 
-    # get the semester
-    semester = page.find_all('b')[1].get_text()[10:]
-
     # fix errors on page and extract rows
     print('Fixing errors on page...')
     fix_known_errors(page)
@@ -382,7 +382,6 @@ def parse_schedules(quarter):
     curr_state = {
         'curr_course': None,        # where the course should go
         'curr_lec_sec': None,       # where meeting times should go
-        'curr_lecture': None,       # where lectures should go
         'curr_department': None,    # where the department should go
         'is_letter_lecture': False  # whether lectures are denoted by letters
     }
@@ -392,7 +391,33 @@ def parse_schedules(quarter):
         extract_data_from_row(tr, data, curr_state)
     print('Done.')
 
+    # get the semester
+    semester_full = page.find_all('b')[1].get_text()[10:].lower()
+    print(semester_full)
+    year = int(re.search(r'\d{4}', semester_full)[0])
+
+    for course in data:
+        course['year'] = year
+        if 'spring' in semester_full:
+            course['semester'] = 'spring'
+        elif 'summer one' in semester_full:
+            # Could be summer one or summer all
+            names = set()
+            for lecture in course['meetings']:
+                names.add(lecture['name'])
+            if 'T' in names or 'S' in names:
+                course['semester'] = 'summer one'
+            else:
+                course['semester'] = 'summer all'
+        elif 'summer two' in semester_full:
+            course['semester'] = 'summer two'
+        elif 'fall' in semester_full:
+            course['semester'] = 'fall'
+        else:
+            print('Unknown semester' + semester_full, course)
+
     return {
         'schedules': data,
-        'semester': semester
+        'semester': semester_full,
+        'year': year
     }

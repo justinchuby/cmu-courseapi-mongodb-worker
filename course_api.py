@@ -13,11 +13,12 @@ from queue import Empty
 
 # Constants
 SEMESTER_ABBREV = {
-    'Spring': 'S',
-    'Fall': 'F',
-    'Summer': 'M'
+    'spring': 'S',
+    'fall': 'F',
+    'summer': 'M'
 }
 RETRY = 3
+
 
 # @function aggregate
 # @brief Combines the course descriptions and schedules into one object.
@@ -28,7 +29,7 @@ def aggregate(schedules):
 
     semester = schedules['semester'].split(' ')[0]
     semester = SEMESTER_ABBREV[semester]
-    year = schedules['semester'].split(' ')[-1][2:]
+    year = str(schedules['year'])[2:]
 
     count = cpu_count() * 4
     lock = threading.Lock()
@@ -48,7 +49,7 @@ def aggregate(schedules):
 
             desc = get_course_desc(_course['num'], semester, year)
             retry_count = RETRY
-            if desc is None and retry_count > 0:
+            while desc is None and retry_count > 0:
                 # Retry getting desc
                 print('    Retrying ' + _course['num'])
                 retry_count -= 1
@@ -62,15 +63,15 @@ def aggregate(schedules):
                 desc['units'] = None
 
             desc['department'] = _course['department']
-            desc['lectures'] = _course['lectures']
-            desc['sections'] = _course['sections']
+            desc['meetings'] = _course['meetings']
+            desc['semester'] = _course['semester']
+            desc['year'] = _course['year']
             names_dict = desc.pop('names_dict', {})
 
             # Replace names of instructors with their full names
-            for key in ('lectures', 'sections'):
-                for meeting in desc[key]:
-                    if meeting['name'] in names_dict:
-                        meeting['instructors'] = names_dict[meeting['name']]
+            for meeting in desc['meetings']:
+                if meeting['name'] in names_dict:
+                    meeting['instructors'] = names_dict[meeting['name']]
 
             number = _course['num'][:2] + '-' + _course['num'][2:]
             with lock:
