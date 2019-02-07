@@ -60,7 +60,7 @@ def aggregate(schedules):
             if desc is not None:
                 names_dict = desc.pop('names_dict', {})
                 # Replace names of instructors with their full names
-                for meeting in desc['meetings']:
+                for meeting in _course['meetings']:
                     if meeting['name'] in names_dict:
                         meeting['instructors'] = names_dict[meeting['name']]
                 course_with_desc = desc
