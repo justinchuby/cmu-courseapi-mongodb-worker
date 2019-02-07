@@ -25,7 +25,6 @@ def create_course_documents(scotty_data):
             elif key == 'rundate':
                 document[key] = rundate
             else:
-                print(document)
                 document[key] = course[key]
         documents.append(document)
     return documents

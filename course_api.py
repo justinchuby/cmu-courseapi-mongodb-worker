@@ -47,6 +47,8 @@ def aggregate(schedules):
 
             print('Getting description for ' + _course['num'])
 
+            course_with_desc = {}
+
             desc = get_course_desc(_course['num'], semester, year)
             retry_count = RETRY
             while desc is None and retry_count > 0:
@@ -55,27 +57,29 @@ def aggregate(schedules):
                 retry_count -= 1
                 desc = get_course_desc(_course['num'], semester, year)
 
-            desc['name'] = _course['title']
+            if desc is not None:
+                names_dict = desc.pop('names_dict', {})
+                # Replace names of instructors with their full names
+                for meeting in desc['meetings']:
+                    if meeting['name'] in names_dict:
+                        meeting['instructors'] = names_dict[meeting['name']]
+                course_with_desc = desc
+
+            course_with_desc['name'] = _course['title']
 
             try:
-                desc['units'] = float(_course['units'])
+                course_with_desc['units'] = float(_course['units'])
             except ValueError:
-                desc['units'] = None
+                course_with_desc['units'] = None
 
-            desc['department'] = _course['department']
-            desc['meetings'] = _course['meetings']
-            desc['semester'] = _course['semester']
-            desc['year'] = _course['year']
-            names_dict = desc.pop('names_dict', {})
-
-            # Replace names of instructors with their full names
-            for meeting in desc['meetings']:
-                if meeting['name'] in names_dict:
-                    meeting['instructors'] = names_dict[meeting['name']]
+            course_with_desc['department'] = _course['department']
+            course_with_desc['meetings'] = _course['meetings']
+            course_with_desc['semester'] = _course['semester']
+            course_with_desc['year'] = _course['year']
 
             number = _course['num'][:2] + '-' + _course['num'][2:]
             with lock:
-                courses[number] = desc
+                courses[number] = course_with_desc
             queue.task_done()
 
     for course in schedules['schedules']:
