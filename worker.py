@@ -1,16 +1,18 @@
 import datetime
 import copy
 import course_api
+from pymongo import MongoClient
 
 COURSE_DOC_KEYS = (
-    "courseid", "rundate", "department", "coreqs", "coreqs_obj",
-    "prereqs", "prereqs_obj", "semester", "year", "units", "desc", "name", "notes"
+    "courseId", "rundate", "department", "coreqs", "coreqsObj",
+    "prereqs", "prereqsObj", "semester", "year", "units", "desc", "name", "notes"
 )
+
+SEMESTERS = ("F", "S", "M1", "M2")
 
 
 def get_scotty_courses(semester):
-    assert (semester in ["F", "S", "M1", "M2"])
-    # global scotty_data
+    assert (semester in SEMESTERS)
     scotty_data = course_api.get_course_data(semester)
     return scotty_data
 
@@ -21,7 +23,7 @@ def create_course_documents(scotty_data):
     for courseid, course in scotty_data.items():
         document = {}
         for key in COURSE_DOC_KEYS:
-            if key == 'courseid':
+            if key == 'courseId':
                 document[key] = courseid
             elif key == 'rundate':
                 document[key] = rundate
@@ -38,19 +40,51 @@ def create_meeting_documents(scotty_data):
     for courseid, course in scotty_data.items():
         def convert_meeting(meeting):
             meeting = copy.copy(meeting)
-            meeting['courseid'] = courseid
+            meeting['courseId'] = courseid
             meeting['rundate'] = rundate
             meeting['year'] = course['year']
             meeting['semester'] = course['semester']
             return meeting
 
         meetings = list(map(convert_meeting, course['meetings']))
-        documents = documents + meetings
+        documents += meetings
     return documents
 
 
 def main():
-    # TODO: fix this later
-    semester = "M2"
-    scotty_data = get_scotty_courses(semester)
-    print(create_meeting_documents(scotty_data))
+    # Connect to database
+    client = MongoClient('mongodb://localhost:27017/')
+    # TODO: configure database name
+    db = client['courseapi']
+
+    # Get data from each semesters first
+    course_documents = []
+    meeting_documents = []
+    for semester in SEMESTERS:
+        scotty_data = get_scotty_courses(semester)
+
+        # TODO: Validate data
+
+        course_documents += create_course_documents(scotty_data)
+        meeting_documents += create_meeting_documents(scotty_data)
+
+    for doc in course_documents:
+        # Upload to MongoDB
+        result = db.courses.update_one(
+            {
+                'courseId': doc['courseId'],
+                'semester': doc['semester'],
+                'yera': doc['year']
+            },
+            {'$set': doc}, upsert=True
+        )
+    for doc in meeting_documents:
+        # TODO: log results
+        result = db.meetings.update_one(
+            {
+                'courseId': doc['courseId'],
+                'semester': doc['semester'],
+                'yera': doc['year']
+            },
+            {'$set': doc}, upsert=True
+        )

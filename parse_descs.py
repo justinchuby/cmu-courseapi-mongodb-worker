@@ -213,9 +213,9 @@ def get_course_desc(num, semester, year):
     return {
         'desc': desc,
         'prereqs': prereqs,
-        'prereqs_obj': prereqs_obj,
+        'prereqsObj': prereqs_obj,
         'coreqs': coreqs,
-        'coreqs_obj': coreqs_obj,
+        'coreqsObj': coreqs_obj,
         'notes': notes,
         'names_dict': names_dict
     }
