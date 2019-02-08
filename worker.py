@@ -1,3 +1,5 @@
+import datetime
+import copy
 import course_api
 
 COURSE_DOC_KEYS = (
@@ -6,7 +8,7 @@ COURSE_DOC_KEYS = (
 )
 
 
-def get_scotty_data(semester):
+def get_scotty_courses(semester):
     assert (semester in ["F", "S", "M1", "M2"])
     # global scotty_data
     scotty_data = course_api.get_course_data(semester)
@@ -15,9 +17,8 @@ def get_scotty_data(semester):
 
 def create_course_documents(scotty_data):
     documents = []
-    courses = scotty_data['courses']
-    rundate = scotty_data['rundate']
-    for courseid, course in courses.items():
+    rundate = datetime.date.today()
+    for courseid, course in scotty_data.items():
         document = {}
         for key in COURSE_DOC_KEYS:
             if key == 'courseid':
@@ -30,12 +31,26 @@ def create_course_documents(scotty_data):
     return documents
 
 
-def create_event_documents(data):
-    pass
+def create_meeting_documents(scotty_data):
+    documents = []
+    rundate = datetime.date.today()
+
+    for courseid, course in scotty_data.items():
+        def convert_meeting(meeting):
+            meeting = copy.copy(meeting)
+            meeting['courseid'] = courseid
+            meeting['rundate'] = rundate
+            meeting['year'] = course['year']
+            meeting['semester'] = course['semester']
+            return meeting
+
+        meetings = list(map(convert_meeting, course['meetings']))
+        documents = documents + meetings
+    return documents
 
 
 def main():
     # TODO: fix this later
-    semester = "M1"
-    scotty_data = get_scotty_data(semester)
-    print(create_course_documents(scotty_data))
+    semester = "M2"
+    scotty_data = get_scotty_courses(semester)
+    print(create_meeting_documents(scotty_data))

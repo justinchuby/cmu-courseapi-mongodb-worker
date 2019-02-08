@@ -93,8 +93,7 @@ def aggregate(schedules):
 
     queue.join()
 
-    return {'courses': courses, 'rundate': str(date.today()),
-            'semester': schedules['semester']}
+    return courses
 
 
 # @function get_course_data
