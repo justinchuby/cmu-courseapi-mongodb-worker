@@ -74,7 +74,7 @@ def main():
             {
                 'courseId': doc['courseId'],
                 'semester': doc['semester'],
-                'yera': doc['year']
+                'year': doc['year']
             },
             {'$set': doc}, upsert=True
         )
@@ -84,7 +84,7 @@ def main():
             {
                 'courseId': doc['courseId'],
                 'semester': doc['semester'],
-                'yera': doc['year']
+                'year': doc['year']
             },
             {'$set': doc}, upsert=True
         )
