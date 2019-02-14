@@ -20,7 +20,7 @@ DESC_URL = "https://enr-apps.as.cmu.edu/open/SOC/SOCServlet/courseDetails"
 #         corequisites.
 # @param reqs: A string of required prerequisites/corequisites.
 # @return: {'invert': Bool indicating whether the representation is inverted,
-#           'reqs_list': List representation of the pre/corequisites}.
+#           'reqs': List representation of the pre/corequisites}.
 def create_reqs_obj(reqs):
 
     # Determines whether the data structure should be inverted by using regex
@@ -71,7 +71,7 @@ def create_reqs_obj(reqs):
     else:
         invert = False
         reqs_list = create_reqs_list(reqs, 'and')
-    return {'invert': invert, 'reqs_list': reqs_list}
+    return {'invert': invert, 'reqs': reqs_list}
 
 
 # @function parse_reqs

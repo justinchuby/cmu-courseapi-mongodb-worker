@@ -17,9 +17,8 @@ def get_scotty_courses(semester):
     return scotty_data
 
 
-def create_course_documents(scotty_data):
+def create_course_documents(scotty_data, rundate):
     documents = []
-    rundate = datetime.date.today()
     for courseid, course in scotty_data.items():
         document = {}
         for key in COURSE_DOC_KEYS:
@@ -33,9 +32,8 @@ def create_course_documents(scotty_data):
     return documents
 
 
-def create_meeting_documents(scotty_data):
+def create_meeting_documents(scotty_data, rundate):
     documents = []
-    rundate = datetime.date.today()
 
     for courseid, course in scotty_data.items():
         def convert_meeting(meeting):
@@ -52,6 +50,8 @@ def create_meeting_documents(scotty_data):
 
 
 def main():
+    rundate = datetime.datetime.today()
+
     # Connect to database
     client = MongoClient('mongodb://localhost:27017/')
     # TODO: configure database name
@@ -65,8 +65,8 @@ def main():
 
         # TODO: Validate data
 
-        course_documents += create_course_documents(scotty_data)
-        meeting_documents += create_meeting_documents(scotty_data)
+        course_documents += create_course_documents(scotty_data, rundate)
+        meeting_documents += create_meeting_documents(scotty_data, rundate)
 
     for doc in course_documents:
         # Upload to MongoDB
@@ -78,6 +78,7 @@ def main():
             },
             {'$set': doc}, upsert=True
         )
+        print(result)
     for doc in meeting_documents:
         # TODO: log results
         result = db.meetings.update_one(
@@ -88,3 +89,4 @@ def main():
             },
             {'$set': doc}, upsert=True
         )
+        print(result)
