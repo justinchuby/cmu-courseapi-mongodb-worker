@@ -44,7 +44,7 @@ def aggregate(schedules):
             except Empty:
                 return
 
-            print('Getting description for', _course['num'], semester, year)
+            print('[courseapi] Getting description for', _course['num'], semester, year)
 
             course_with_desc = {}
 
@@ -52,7 +52,7 @@ def aggregate(schedules):
             retry_count = RETRY
             while desc is None and retry_count > 0:
                 # Retry getting desc
-                print('    Retrying ' + _course['num'])
+                print('[courseapi]     Retrying ' + _course['num'])
                 retry_count -= 1
                 desc = get_course_desc(_course['num'], semester, year)
 
@@ -84,7 +84,7 @@ def aggregate(schedules):
     for course in schedules['schedules']:
         queue.put(course)
 
-    print("running on " + str(count) + " threads")
+    print("[courseapi] Running on " + str(count) + " threads")
     for _ in range(count):
         thread = threading.Thread(target=run)
         thread.setDaemon(True)

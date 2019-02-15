@@ -68,10 +68,7 @@ def get_page(quarter):
     url = URL_FMT % QUARTERS[quarter]
 
     # obtain and return data
-    try:
-        response = urllib.request.urlopen(url)
-    except:
-        return None
+    response = urllib.request.urlopen(url)
 
     return bs4.BeautifulSoup(response.read(), 'html.parser')
 
@@ -363,19 +360,15 @@ def parse_schedules(quarter):
     quarter: one of ['S', 'M1', 'M2', 'F']
     '''
     # get the HTML page
-    print('Requesting the HTML page from the network...')
+    print('[courseapi] Requesting the HTML page from the network for {} semester...'.format(quarter), end=' ')
     page = get_page(quarter)
-    if not page:
-        print('Failed to obtain the HTML document! '
-              'Check your internet connection.')
-        sys.exit()
     print('Done.')
 
     # fix errors on page and extract rows
-    print('Fixing errors on page...')
+    print('[courseapi] Fixing errors on page...', end=' ')
     fix_known_errors(page)
     print('Done.')
-    print('Finding table rows on page...')
+    print('[courseapi] Finding table rows on page...', end=' ')
     trs = get_table_rows(page)
     print('Done.')
     # parse each row and insert it into 'data' as appropriate
@@ -386,14 +379,13 @@ def parse_schedules(quarter):
         'is_letter_lecture': False  # whether lectures are denoted by letters
     }
     data = []
-    print('Parsing rows...')
+    print('[courseapi] Parsing rows...', end=' ')
     for tr in trs:
         extract_data_from_row(tr, data, curr_state)
     print('Done.')
 
     # get the semester
     semester_full = page.find_all('b')[1].get_text()[10:].lower()
-    print(semester_full)
     year = int(re.search(r'\d{4}', semester_full)[0])
 
     for course in data:
@@ -414,7 +406,7 @@ def parse_schedules(quarter):
         elif 'fall' in semester_full:
             course['semester'] = 'fall'
         else:
-            print('Unknown semester' + semester_full, course)
+            print('[courseapi] Unknown semester' + semester_full, course)
 
     return {
         'schedules': data,
