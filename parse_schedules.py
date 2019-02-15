@@ -36,6 +36,7 @@ instructor and not by a TA, I call these lettered groups 'lectures'. Courses
 meant for only certain majors, like advanced physics courses, have only one
 lettered lecture and comprise much of this category of courses.
 '''
+import copy
 import re
 import urllib.request
 import bs4
@@ -172,7 +173,7 @@ def fix_known_errors(page):
                 i += 1
 
 
-def process_row(row_tag):
+def process_row(row_tag) -> [str]:
     '''
     return row_tag as a list of HTML-tag-stripped strings
 
@@ -183,7 +184,7 @@ def process_row(row_tag):
         if not tag.string or tag.string.isspace():
             res.append(None)
         else:
-            res.append(tag.string)
+            res.append(str(tag.string))
     return res
 
 
@@ -209,8 +210,7 @@ def parse_row(row):
         data['times'] = [parse_meeting(lec_sec_data)]
         data['name'] = lec_sec_data[3]
         if lec_sec_data[9]:
-            data['instructors'] = \
-                    [inst for inst in lec_sec_data[9].split(', ')]
+            data['instructors'] = [inst for inst in lec_sec_data[9].split(', ')]
         else:
             data['instructors'] = None
         return data
