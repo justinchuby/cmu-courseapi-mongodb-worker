@@ -1,7 +1,10 @@
 import datetime
 import copy
+
 import course_api
 from pymongo import MongoClient
+
+DEBUG = True
 
 COURSE_DOC_KEYS = (
     "courseId", "rundate", "department", "coreqs", "coreqsObj",
@@ -42,6 +45,9 @@ def create_meeting_documents(scotty_data, rundate):
             meeting['rundate'] = rundate
             meeting['year'] = course['year']
             meeting['semester'] = course['semester']
+            for t in meeting['times']:
+                t['begin'] = convert_time(t['begin'])
+                t['end'] = convert_time(t['end'])
             return meeting
 
         meetings = list(map(convert_meeting, course['meetings']))
@@ -49,6 +55,48 @@ def create_meeting_documents(scotty_data, rundate):
     return documents
 
 
+def convert_time(time_string: str) -> int:
+    # Check for none
+    if time_string:
+        t = datetime.datetime.strptime(time_string, "%I:%M%p")
+        return t.hour * 60 + t.minute
+
+
+def upload_courses(db, documents):
+    for doc in documents:
+        result = db.courses.update_one(
+            {
+                'courseId': doc['courseId'],
+                'semester': doc['semester'],
+                'year': doc['year']
+            },
+            {'$set': doc}, upsert=True
+        )
+        print(doc['semester'], doc['year'], doc['courseId'], 'in courses',
+              'acknowledged:', result.acknowledged)
+
+
+def upload_meetings(db, documents):
+    deleted_set = set()
+    # Delete the old meetings first
+    for doc in documents:
+        course_marker = (doc['semester'], doc['year'], doc['courseId'])
+        if course_marker not in deleted_set:
+            db.meetings.delete_many(
+                {
+                    'courseId': doc['courseId'],
+                    'semester': doc['semester'],
+                    'year': doc['year'],
+                }
+            )
+        deleted_set.add(course_marker)
+
+    # Then add the new documents
+    result = db.meetings.insert_many(documents)
+    print('added', len(result.inserted_ids), 'in meetings')
+
+
+# TODO: store begin and end time as integers in minutes
 def main():
     rundate = datetime.datetime.today()
 
@@ -64,29 +112,8 @@ def main():
         scotty_data = get_scotty_courses(semester)
 
         # TODO: Validate data
-
         course_documents += create_course_documents(scotty_data, rundate)
         meeting_documents += create_meeting_documents(scotty_data, rundate)
 
-    for doc in course_documents:
-        # Upload to MongoDB
-        result = db.courses.update_one(
-            {
-                'courseId': doc['courseId'],
-                'semester': doc['semester'],
-                'year': doc['year']
-            },
-            {'$set': doc}, upsert=True
-        )
-        print(result)
-    for doc in meeting_documents:
-        # TODO: log results
-        result = db.meetings.update_one(
-            {
-                'courseId': doc['courseId'],
-                'semester': doc['semester'],
-                'year': doc['year']
-            },
-            {'$set': doc}, upsert=True
-        )
-        print(result)
+    upload_courses(db, course_documents)
+    upload_meetings(db, meeting_documents)
