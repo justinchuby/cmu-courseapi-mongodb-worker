@@ -1,10 +1,15 @@
 import datetime
 import copy
-
-import course_api
 from pymongo import MongoClient
+import course_api
+import config
 
-DEBUG = True
+DEBUG = config.DEBUG
+
+if config.SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(config.SENTRY_DSN)
+    print("[Worker] Sentry imported")
 
 COURSE_DOC_KEYS = (
     "courseId", "rundate", "department", "coreqs", "coreqsObj",
@@ -40,7 +45,7 @@ def create_meeting_documents(scotty_data, rundate):
 
     for courseid, course in scotty_data.items():
         def convert_meeting(meeting):
-            meeting = copy.copy(meeting)
+            meeting = copy.deepcopy(meeting)
             meeting['courseId'] = courseid
             meeting['rundate'] = rundate
             meeting['year'] = course['year']
@@ -100,14 +105,17 @@ def main():
     rundate = datetime.datetime.today()
 
     # Connect to database
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient(config.MONGO_URI)
     # TODO: configure database name
     db = client['courseapi']
 
     # Get data from each semesters first
     course_documents = []
     meeting_documents = []
+
     for semester in SEMESTERS:
+        if DEBUG:
+            global scotty_data
         scotty_data = get_scotty_courses(semester)
 
         # TODO: Validate data

@@ -44,7 +44,7 @@ def aggregate(schedules):
             except Empty:
                 return
 
-            print('Getting description for ' + _course['num'])
+            print('Getting description for', _course['num'], semester, year)
 
             course_with_desc = {}
 
