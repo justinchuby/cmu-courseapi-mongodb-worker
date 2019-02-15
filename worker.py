@@ -89,14 +89,13 @@ def upload_meetings(db, documents):
                     'year': doc['year'],
                 }
             )
-        deleted_set.add(course_marker)
+            deleted_set.add(course_marker)
 
     # Then add the new documents
     result = db.meetings.insert_many(documents)
     print('added', len(result.inserted_ids), 'in meetings')
 
 
-# TODO: store begin and end time as integers in minutes
 def main():
     rundate = datetime.datetime.today()
 
