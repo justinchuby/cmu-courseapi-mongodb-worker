@@ -1,6 +1,7 @@
 import datetime
 import copy
 from pymongo import MongoClient
+from pymongo import DeleteMany, UpdateOne
 import course_api
 import config
 
@@ -68,37 +69,41 @@ def convert_time(time_string: str) -> int:
 
 
 def upload_courses(db, documents):
+    write_ops = []
     for doc in documents:
-        result = db.courses.update_one(
+        write_ops.append(UpdateOne(
             {
                 'courseId': doc['courseId'],
                 'semester': doc['semester'],
                 'year': doc['year']
             },
             {'$set': doc}, upsert=True
-        )
-        print(doc['semester'], doc['year'], doc['courseId'], 'in courses',
-              'acknowledged:', result.acknowledged)
+        ))
+    result = db.courses.bulk_write(write_ops)
+    print('[Worker] Updated', result.modified_count, 'in courses')
 
 
 def upload_meetings(db, documents):
     deleted_set = set()
+    write_ops = []
     # Delete the old meetings first
     for doc in documents:
         course_marker = (doc['semester'], doc['year'], doc['courseId'])
         if course_marker not in deleted_set:
-            db.meetings.delete_many(
+            write_ops.append(DeleteMany(
                 {
                     'courseId': doc['courseId'],
                     'semester': doc['semester'],
                     'year': doc['year'],
                 }
-            )
+            ))
             deleted_set.add(course_marker)
 
     # Then add the new documents
+    result = db.meetings.bulk_write(write_ops)
+    print('[Worker] Deleted', result.deleted_count, 'in meetings')
     result = db.meetings.insert_many(documents)
-    print('added', len(result.inserted_ids), 'in meetings')
+    print('[Worker] Added', len(result.inserted_ids), 'in meetings')
 
 
 def main():
@@ -106,8 +111,7 @@ def main():
 
     # Connect to database
     client = MongoClient(config.MONGO_URI)
-    # TODO: configure database name
-    db = client['courseapi']
+    db = client[config.DB_NAME]
 
     # Get data from each semesters first
     course_documents = []
