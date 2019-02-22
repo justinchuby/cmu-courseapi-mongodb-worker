@@ -79,7 +79,7 @@ def upload_courses(db, documents):
             },
             {'$set': doc}, upsert=True
         ))
-    result = db.courses.bulk_write(write_ops)
+    result = db["courses"].bulk_write(write_ops)
     print('[Worker] Updated', result.modified_count, 'in courses')
 
 
@@ -100,9 +100,9 @@ def upload_meetings(db, documents):
             deleted_set.add(course_marker)
 
     # Then add the new documents
-    result = db.meetings.bulk_write(write_ops)
+    result = db['meetings'].bulk_write(write_ops)
     print('[Worker] Deleted', result.deleted_count, 'in meetings')
-    result = db.meetings.insert_many(documents)
+    result = db['meetings'].insert_many(documents)
     print('[Worker] Added', len(result.inserted_ids), 'in meetings')
 
 
