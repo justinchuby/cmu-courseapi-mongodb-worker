@@ -52,6 +52,7 @@ def aggregate(schedules):
             retry_count = RETRY
             while desc is None and retry_count > 0:
                 # Retry getting desc
+                # TODO: wait after retry
                 print('[courseapi]     Retrying ' + _course['num'])
                 retry_count -= 1
                 desc = get_course_desc(_course['num'], semester, year)
